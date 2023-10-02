@@ -17,7 +17,7 @@ Our system’s key features include:
 • U-blox NEO-6M GPS Module
 
 #### Software:
-• Quartus ![Download Quartas](https://www.intel.com/content/www/us/en/support/programmable/support-resources/programming/tls-software.html)
+• Quartus [Download Quartas](https://www.intel.com/content/www/us/en/support/programmable/support-resources/programming/tls-software.html)
 • U-blox NEO-6M GPS Module
 
 
