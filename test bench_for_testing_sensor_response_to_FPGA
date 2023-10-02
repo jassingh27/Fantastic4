@@ -1,0 +1,50 @@
+`timescale 1ns/10ps
+
+module TOP_MODULE_tb;
+
+    // Declare wires and registers
+    reg clk;
+    reg rst;
+    reg rx;
+    wire [7:0] leds;
+    wire data_received;
+
+    // Instantiate the main module
+    TOP_MODULE uut (
+        .clk(clk),
+        .rst(rst),
+        .rx(rx),
+        .leds(leds)
+    );
+
+    // Clock generation
+    always begin
+        #5 clk = ~clk; // Assuming 10ns clock period for the testbench
+    end
+
+    // Testbench stimulus
+    initial begin
+        // Initial conditions
+        clk = 0;
+        rst = 1;
+        rx = 0;
+
+        #10 rst = 0; // Release reset after a few clock cycles
+        #20 rx = 1;  // Start sending UART data
+        #25 rx = 0;
+        #30 rx = 1;
+        #35 rx = 0;
+        #40 rx = 1;
+        #45 rx = 0;
+        #50 rx = 1;  // Continue this pattern if needed...
+
+        // Stop simulation
+        #200 $finish;
+    end
+
+    // Monitor outputs
+    initial begin
+        $monitor("At time %t, rx = %b, leds = %b", $time, rx, leds);
+    end
+
+endmodule
