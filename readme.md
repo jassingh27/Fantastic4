@@ -21,6 +21,16 @@ Our system’s key features include:
 • U-blox NEO-6M GPS Module
 
 
+### Trello
+[Trello Board](https://trello.com/b/2zIjK3os/fantastic-four)
 
+
+
+### FSM Model
+![FSM Model](https://github.com/jassingh27/Fantastic4/assets/110685225/cb023fe0-4226-4e5e-bc5e-c81a9d55905c)
+
+
+
+### Testbench 
 <img width="1339" alt="image" src="https://github.com/jassingh27/Fantastic4/assets/110685225/1ccdc6d1-1554-4d8b-9c98-334a7c65898b">
 This is the output obtained after executing testbench on EDA Playground
