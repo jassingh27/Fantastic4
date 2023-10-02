@@ -1,0 +1,64 @@
+// UART_RX Module:
+// This module detects any incoming data on the rx line. For each data detected, a bit in data_received is set.
+module UART_RX (
+    input wire clk,
+    input wire rst,
+    input wire rx,
+    output reg [7:0] data_received
+);
+
+    reg [3:0] detect_count = 4'd0;
+
+    always @(posedge clk or posedge rst) begin
+        if (rst) begin
+            data_received <= 8'b00000000;
+            detect_count <= 0;
+        end else begin
+            if (rx) begin
+                if(detect_count < 4'd8) begin 
+                    data_received[detect_count] <= 1;
+                    detect_count <= detect_count + 1;
+                end
+            end else begin
+                detect_count <= 0;
+                data_received <= 8'b00000000;
+            end
+        end
+    end
+
+endmodule
+
+// LED_Display Module:
+// This module maps data_received directly to LEDs.
+module LED_Display (
+    input wire [7:0] data_received,
+    output wire [7:0] leds
+);
+
+    assign leds = data_received;
+
+endmodule
+
+// Top Module:
+module TOP_MODULE (
+    input wire clk,
+    input wire rst,
+    input wire rx,
+    output wire [7:0] leds
+);
+
+    wire [7:0] data_received;
+
+    UART_RX uart_rx (
+        .clk(clk),
+        .rst(rst),
+        .rx(rx),
+        .data_received(data_received)
+    );
+
+    LED_Display led_display (
+        .data_received(data_received),
+        .leds(leds)
+    );
+
+endmodule
