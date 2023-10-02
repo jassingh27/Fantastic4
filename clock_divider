@@ -1,0 +1,149 @@
+module ClockDivider(
+    input wire clk,
+    input wire rst,
+    output reg clk_out
+);
+
+    reg clk_div;
+    
+    always @(posedge clk or posedge rst) begin
+        if(rst) 
+            clk_div <= 0;
+        else
+            clk_div <= ~clk_div;
+    end
+    
+    assign clk_out = clk_div;
+
+endmodule
+-----------------------
+
+module TOP_MODULE (
+    input wire clk,
+    input wire rst,
+    input wire rx,
+    input wire [7:0] gps_data,    // Input for GPS data
+    output wire [7:0] leds
+);
+
+    wire data_received;
+    wire clk_divided;
+
+    ClockDivider clock_divider (
+        .clk(clk),
+        .rst(rst),
+        .clk_out(clk_divided)
+    );
+
+    UART_RX uart_rx (
+        .clk(clk_divided),
+        .rst(rst),
+        .rx(rx),
+        .data_received(data_received)
+    );
+
+    LED_Display led_display (
+        .data_received(data_received),
+        .gps_data(gps_data),       // Pass the GPS data to the LED_Display module
+        .leds(leds)
+    );
+
+endmodule
+
+----------------
+
+
+// UART_RX Module:
+// This module detects any incoming data on the rx line. If data is received, data_received is set to 1.
+module UART_RX (
+    input wire clk,
+    input wire rst,
+    input wire rx,
+    output reg data_received
+);
+
+    reg [3:0] detect_count = 4'd0;
+
+    always @(posedge clk or posedge rst) begin
+        if (rst) begin
+            data_received <= 0;
+            detect_count <= 0;
+        end else begin
+            if (rx) begin
+                detect_count <= detect_count + 1;
+                if(detect_count >= 4'd4) begin // Detect multiple transitions to confirm data receipt
+                    data_received <= 1;
+                end
+            end else begin
+                detect_count <= 0;
+            end
+        end
+    end
+
+endmodule
+
+// LED_Display Module:
+// This module displays gps_data on LEDs when data_received is high.
+module LED_Display (
+    input wire data_received,
+    input wire [7:0] gps_data,
+    output wire [7:0] leds
+);
+
+    assign leds = data_received ? gps_data : 8'b00000000;
+
+endmodule
+
+
+
+module ClockDivider(
+    input wire clk,
+    input wire rst,
+    output reg clk_out
+);
+
+    reg clk_div;
+
+    always @(posedge clk or posedge rst) begin
+        if(rst) 
+            clk_div <= 0;
+        else
+            clk_div <= ~clk_div;
+    end
+    
+    assign clk_out = clk_div;
+
+endmodule
+
+
+
+module TOP_MODULE (
+    input wire clk,
+    input wire rst,
+    input wire rx,
+    output wire [7:0] leds
+);
+
+    wire [7:0] data_received;
+    wire clk_divided;
+
+    // Clock Divider Instance
+    ClockDivider clock_divider (
+        .clk(clk),
+        .rst(rst),
+        .clk_out(clk_divided)
+    );
+
+    UART_RX uart_rx (
+        .clk(clk_divided),  // Use the divided clock
+        .rst(rst),
+        .rx(rx),
+        .data_received(data_received)
+    );
+
+    LED_Display led_display (
+        .data_received(data_received),
+        .leds(leds)
+    );
+
+endmodule
