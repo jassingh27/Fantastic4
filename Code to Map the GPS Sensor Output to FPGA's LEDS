@@ -16,7 +16,7 @@ module UART_RX (
         end else begin
             if (rx) begin
                 if(detect_count < 4'd8) begin 
-                    data_received[detect_count] <= 1;
+                    data_received[detect_count] <= rx;  // Capture actual bit
                     detect_count <= detect_count + 1;
                 end
             end else begin
@@ -27,6 +27,7 @@ module UART_RX (
     end
 
 endmodule
+
 
 // LED_Display Module:
 // This module maps data_received directly to LEDs.
