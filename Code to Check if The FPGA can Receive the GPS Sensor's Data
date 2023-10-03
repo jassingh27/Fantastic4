@@ -4,24 +4,23 @@ module UART_RX (
     input wire clk, //clock
     input wire rst, //reset
     input wire rx,  //rx since FPGA is receiving data from GPS sensor
-    output reg [7:0] data_received //8bit GPS sensor data
+    output reg data_received 
 );
 
     reg [3:0] detect_count = 4'd0;
 
     always @(posedge clk or posedge rst) begin
         if (rst) begin
-            data_received <= 8'b00000000; //makes sure that the data_received is 8bits
-            detect_count <= 0; //detect_count is needed to identify which bit in the gps sensor
+            data_received <= 0;
+            detect_count <= 0;
         end else begin
             if (rx) begin
-                if(detect_count < 8) begin //checks the data from the gps sensor is in 8 bits
-                    data_received[detect_count] <= rx;
-                    detect_count <= detect_count + 1;
+                detect_count <= detect_count + 1;
+                if(detect_count >= 4'd4) begin // Detect multiple transitions to confirm data receipt
+                    data_received <= 1;
                 end
             end else begin
                 detect_count <= 0;
-                data_received <= 8'b00000000;
             end
         end
     end
@@ -33,10 +32,10 @@ endmodule
 module LED_Display (
     input wire data_received,
     input wire [7:0] gps_data,
-    output wire [7:0] leds
+    output wire [7:0] leds //leds on the FPGA board
 );
 
-    assign leds = data_received ? gps_data : 8'b00000000;
+    assign leds = data_received ? gps_data : 8'b00000000; //all the leds turn on if data is received from the gps sensor
 
 endmodule
 
@@ -46,7 +45,7 @@ module TOP_MODULE (
     input wire rst,
     input wire rx,
     input wire [7:0] gps_data,    // Input for GPS data
-    output wire [7:0] leds    //the 8 leds on the FPGA board
+    output wire [7:0] leds
 );
 
     wire data_received;
