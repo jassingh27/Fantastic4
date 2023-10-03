@@ -1,22 +1,22 @@
 // UART_RX Module:
 // This module detects any incoming data on the rx line. For each data detected, a bit in data_received is set.
 module UART_RX (
-    input wire clk,
-    input wire rst,
-    input wire rx,
-    output reg [7:0] data_received
+    input wire clk, //clock
+    input wire rst, //reset
+    input wire rx,  //rx since FPGA is receiving data from GPS sensor
+    output reg [7:0] data_received //8bit GPS sensor data
 );
 
     reg [3:0] detect_count = 4'd0;
 
     always @(posedge clk or posedge rst) begin
         if (rst) begin
-            data_received <= 8'b00000000;
-            detect_count <= 0;
+            data_received <= 8'b00000000; //makes sure that the data_received is 8bits
+            detect_count <= 0; //detect_count is needed to identify which bit in data_received
         end else begin
             if (rx) begin
                 if(detect_count < 4'd8) begin 
-                    data_received[detect_count] <= rx;  // Capture actual bit
+                    data_received[detect_count] <= rx;  // Capture actual bits of the data
                     detect_count <= detect_count + 1;
                 end
             end else begin
