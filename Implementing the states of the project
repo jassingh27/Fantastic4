@@ -1,0 +1,161 @@
+module GPS_Controller (
+    input wire clk,          // clock
+    input wire reset,        // reset
+    input wire gps_rx,       // GPS UART receive line
+    output wire gps_tx,      // GPS UART transmit line
+    output wire gps_data_valid,  // indicates if GPS data is valid
+    output wire [7:0] gps_data   // GPS data
+);
+
+// our project states
+typedef enum logic [2:0] {
+    INIT_STATE,
+    GPS_CONN_STATE,
+    WAIT_FOR_GPS_STATE,
+    GPS_ACQ_STATE,
+    REAL_TIME_TRACKING_STATE
+} state_t;
+
+// registers to hold state information
+reg [2:0] current_state, next_state;
+
+
+reg [7:0] gps_data_buffer;   // Buffer for GPS data
+reg gps_data_ready;         // Flag indicating valid GPS data
+
+// UART communication parameters
+parameter BAUD_RATE = 9600;
+parameter START_BIT = 1'b0; // UART start bit
+parameter STOP_BIT = 1'b1;  // UART stop bit
+
+// FSM process starts
+always @(posedge clk or posedge reset) begin
+    if (reset) begin
+        current_state <= INIT_STATE;
+    end else begin
+        current_state <= next_state;
+    end
+end
+
+// next state logic
+always @(*) begin
+    case (current_state)
+        INIT_STATE: next_state = GPS_CONN_STATE;
+        GPS_CONN_STATE: next_state = WAIT_FOR_GPS_STATE;
+        WAIT_FOR_GPS_STATE: next_state = GPS_ACQ_STATE;
+        GPS_ACQ_STATE: next_state = REAL_TIME_TRACKING_STATE;
+        REAL_TIME_TRACKING_STATE: next_state = REAL_TIME_TRACKING_STATE;
+        default: next_state = INIT_STATE;
+    endcase
+end
+
+// UART receiver logic to receive data from GPS module (gps_rx)
+reg [2:0] rx_state;
+reg [7:0] rx_data;
+always @(posedge clk or posedge reset) begin
+    if (reset) begin
+        rx_state <= 3'b0; // reset the state machine
+    end else begin
+        case (rx_state)
+            3'b000: // Wait for start bit
+                if (gps_rx == START_BIT) begin
+                    rx_state <= 3'b001;
+                    rx_data <= 8'h00; // initialise data
+                end
+            3'b001 to 3'b010: // receive data bits
+                rx_data <= {rx_data[6:0], gps_rx};
+                rx_state <= rx_state + 1;
+            3'b011: // Wait for stop bit
+                if (gps_rx == STOP_BIT) begin
+                    // Data reception is complete; process rx_data
+                    // Set gps_data_buffer with received data
+                    gps_data_buffer <= rx_data;
+                    gps_data_ready <= 1'b1; // Set data valid flag
+                    rx_state <= 3'b000; // Reset state for the next reception
+                end
+            default: rx_state <= 3'b000;
+        endcase
+    end
+end
+
+
+//UART transmitter logic to send commands to GPS module (gps_tx)
+module UART_Transmitter (
+    input wire clk,          // clock
+    input wire reset,        // reset 
+    input wire [7:0] data,   // data to transmit (8 bits)
+    output wire tx,          // UART transmit line
+    output wire tx_ready     // transmit ready signal
+);
+
+// UART parameters
+parameter BAUD_RATE = 9600; 
+parameter START_BIT = 1'b0; // start bit
+parameter STOP_BIT = 1'b1;  // UART stop bit
+parameter DATA_BITS = 8;     // Number of data bits
+
+reg [3:0] bit_count;     
+reg [10:0] baud_counter; 
+reg shift_reg;           // Shift register for serial data transmission
+reg tx_state;            // transmit state machine state data
+
+// Initialize internal signals
+assign tx = shift_reg;
+
+// FSM for UART transmission
+always @(posedge clk or posedge reset) begin
+    if (reset) begin
+        bit_count <= 4'b0;         // Reset bit counter
+        baud_counter <= 11'b0;      // Reset baud rate counter
+        shift_reg <= START_BIT;     // initialise shift register with start bit
+        tx_state <= 2'b00;          // initialise transmit state
+        tx_ready <= 1'b1;           // Set transmit ready flag
+    end else if (tx_ready) begin
+        // Wait for data to be valid (assuming data is ready when tx_ready is high)
+        tx_ready <= 1'b0;
+    end else if (!tx_ready && baud_counter == (BAUD_RATE - 1)) begin
+        // Transmit data
+        case (tx_state)
+            2'b00: // Start bit
+                shift_reg <= data[0];
+                tx_state <= 2'b01;
+            2'b01 to 2'b10: // Data bits
+                shift_reg <= data[bit_count];
+                bit_count <= bit_count + 1;
+                tx_state <= (bit_count == DATA_BITS - 1) ? 2'b11 : 2'b01;
+            2'b11: // Stop bit
+                shift_reg <= STOP_BIT;
+                tx_state <= 2'b00;
+                tx_ready <= 1'b1; // Transmission complete
+            default:
+                tx_state <= 2'b00;
+                tx_ready <= 1'b1; // Reset on error
+        endcase
+    end else if (!tx_ready) begin
+        // Increment baud counter
+        baud_counter <= baud_counter + 1;
+    end
+end
+
+endmodule
+
+// Output data and data validity
+always @(*) begin
+    case (current_state)
+        REAL_TIME_TRACKING_STATE:
+            begin
+                gps_data_buffer = // Populate with GPS data
+                gps_data_ready = 1'b1;  // Set valid data flag
+            end
+        default:
+            begin
+                gps_data_buffer = 8'h00;
+                gps_data_ready = 1'b0;
+            end
+    endcase
+end
+
+assign gps_data_valid = gps_data_ready;
+assign gps_data = gps_data_buffer;
+
+endmodule
